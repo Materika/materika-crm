@@ -5,28 +5,28 @@
       "nome": "Amministratore",
       "agente": null,
       "ruolo": "master",
-      "password": "Materika2024!"
+      "password_hash": "21c77588ed0443f4c8dca5d57041e574fb56c046e113cbf70d69691445017d9a"
     },
     {
       "username": "mike",
       "nome": "Mike",
       "agente": "mike",
       "ruolo": "agente",
-      "password": "Mike2024!"
+      "password_hash": "86403c7432bdea58d5f112eb86f209d46843500792a872b94d69b5662d47b6cf"
     },
     {
       "username": "carlo",
       "nome": "Carlo",
       "agente": "carlo",
       "ruolo": "agente",
-      "password": "Carlo2024!"
+      "password_hash": "e2ba688209fe232d4c22e7bf54475307edaf85954763eb931d66644ae56b9d60"
     },
     {
       "username": "nicola",
       "nome": "Nicola",
       "agente": "nicola",
       "ruolo": "agente",
-      "password": "Nicola2024!"
+      "password_hash": "0d0b5c84a8432a05d9213c24064a921da95453048fea180f0589873ff73c0de2"
     }
   ]
 }
