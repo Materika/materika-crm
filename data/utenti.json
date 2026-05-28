@@ -1,0 +1,32 @@
+{
+  "utenti": [
+    {
+      "username": "master",
+      "nome": "Amministratore",
+      "agente": null,
+      "ruolo": "master",
+      "password": "Materika2024!"
+    },
+    {
+      "username": "mike",
+      "nome": "Mike",
+      "agente": "mike",
+      "ruolo": "agente",
+      "password": "Mike2024!"
+    },
+    {
+      "username": "carlo",
+      "nome": "Carlo",
+      "agente": "carlo",
+      "ruolo": "agente",
+      "password": "Carlo2024!"
+    },
+    {
+      "username": "nicola",
+      "nome": "Nicola",
+      "agente": "nicola",
+      "ruolo": "agente",
+      "password": "Nicola2024!"
+    }
+  ]
+}
