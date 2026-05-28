@@ -1,13 +1,5 @@
 {
   "preventivi": {
-    "PIVATO SRL": [
-      {
-        "filename": "controllaAvvisoPagoPA.do-6.pdf",
-        "numero": "6",
-        "data": "28/05/2026",
-        "url": "https://github.com/Materika/materika-crm/blob/main/preventivi/PIVATO_SRL/controllaAvvisoPagoPA.do-6.pdf",
-        "path": "preventivi/PIVATO_SRL/controllaAvvisoPagoPA.do-6.pdf"
-      }
-    ]
+    "PIVATO SRL": []
   }
 }
