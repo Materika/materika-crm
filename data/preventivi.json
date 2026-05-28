@@ -1,14 +1,6 @@
 {
   "preventivi": {
     "PIVATO SRL": [],
-    "ANTICO FORNO DELLA ROMAGNA S.R.L.": [
-      {
-        "filename": "controllaAvvisoPagoPA.do-6.pdf",
-        "numero": "6",
-        "data": "28/05/2026",
-        "url": "https://github.com/Materika/materika-crm/blob/main/preventivi/ANTICO_FORNO_DELLA_ROMAGNA_S_R_L_/controllaAvvisoPagoPA.do-6.pdf",
-        "path": "preventivi/ANTICO_FORNO_DELLA_ROMAGNA_S_R_L_/controllaAvvisoPagoPA.do-6.pdf"
-      }
-    ]
+    "ANTICO FORNO DELLA ROMAGNA S.R.L.": []
   }
 }
