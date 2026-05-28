@@ -1,5 +1,13 @@
 {
   "preventivi": {
-    "PIVATO SRL": []
+    "PIVATO SRL": [
+      {
+        "filename": "controllaAvvisoPagoPA.do-6.pdf",
+        "numero": "6",
+        "data": "28/05/2026",
+        "url": null,
+        "path": "preventivi/PIVATO_SRL/controllaAvvisoPagoPA.do-6.pdf"
+      }
+    ]
   }
 }
