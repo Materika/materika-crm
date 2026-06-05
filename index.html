@@ -302,11 +302,11 @@ body{background:var(--bg);color:var(--text);font-size:13px;height:100vh;overflow
                 <label style="font-size:11px;color:var(--text3)">Periodo:</label>
                 <button class="periodo-chip" id="p3" onclick="setPeriodo(3)">3 mesi</button>
                 <button class="periodo-chip" id="p6" onclick="setPeriodo(6)">6 mesi</button>
-                <button class="periodo-chip on" id="p12" onclick="setPeriodo(12)">12 mesi</button>
+                <button class="periodo-chip" id="p12" onclick="setPeriodo(12)">12 mesi</button>
                 <button class="periodo-chip" id="p24" onclick="setPeriodo(24)">24 mesi</button>
-                <button class="periodo-chip" id="pYTD" onclick="setPeriodo('YTD')" style="font-weight:600">Anno in corso</button>
+                <button class="periodo-chip on" id="pYTD" onclick="setPeriodo('YTD')" style="font-weight:600">Anno in corso</button>
                 <button class="periodo-chip" id="p0" onclick="setPeriodo(0)">Tutto</button>
-                <span style="margin-left:8px;font-size:10px;color:var(--text3);font-style:italic" id="periodo-info">Ultimi 12 mesi</span>
+                <span style="margin-left:8px;font-size:10px;color:var(--text3);font-style:italic" id="periodo-info">Anno in corso</span>
               <div style="margin-left:auto;font-size:10px;color:var(--text3);background:var(--bg4);padding:3px 10px;border-radius:6px;border:1px solid var(--border)" title="Lo stato (fermo/perso) usa sempre l'intero storico. Il trend (in calo/attivo/in ripresa) cambia col periodo selezionato.">
                 ℹ️ Stato = storico completo · Trend = periodo selezionato
               </div>
@@ -478,7 +478,7 @@ const GH_REPO='Materika/materika-crm';
 let preventivi={};
 // Configurazione SHA cache
 let configSha={};
-let activePeriodo=12, activeFilter='tutti';
+let activePeriodo='YTD', activeFilter='tutti';
 let donutInst=null, detailChartInst=null, annualChartInst=null, drillChartInst=null;
 // Alert paginazione
 let alertPage=0;
