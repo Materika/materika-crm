@@ -650,27 +650,72 @@ function mk(d){return d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,
 ═══════════════════════════════════════════ */
 
 async function saveClientsToGitHub(){
-  if(!Object.keys(clients).length) return;
+  const nCli=Object.keys(clients).length;
+  if(!nCli){console.warn('saveClientsToGitHub: nessun cliente');return;}
   const token=localStorage.getItem('gh_token')||ghToken;
-  if(!token) return;
-  // Serializza clients (struttura aggregata, non le righe raw)
+  if(!token){console.warn('saveClientsToGitHub: token mancante');return;}
+  console.log('Saving',nCli,'clients to GitHub...');
+
+  // Serializza — solo dati aggregati (no righe raw)
   const payload={
     savedAt: new Date().toISOString(),
     colMap,
-    clients: Object.fromEntries(Object.entries(clients).map(([k,c])=>([k,{
-      name:c.name, code:c.code, agente:c.agente,
-      monthlyEur:c.monthlyEur,
-      annualEur:c.annualEur,
-      allDates:c.allDates.map(d=>d.toISOString()),
-      artData:Object.fromEntries(Object.entries(c.artData).map(([ak,art])=>([ak,{
-        monthlyEur:art.monthlyEur,
-        allDates:art.allDates.map(d=>d.toISOString()),
-        totalQty:art.totalQty,
-        totalEur:art.totalEur
-      }])))
-    }])))
+    clients: {}
   };
-  await ghSave('data/clienti.json', payload, 'Update dati clienti '+new Date().toLocaleDateString('it-IT'));
+  Object.entries(clients).forEach(([k,c])=>{
+    try{
+      payload.clients[k]={
+        name:c.name||'', code:c.code||'', agente:c.agente||'',
+        monthlyEur:c.monthlyEur||{},
+        annualEur:c.annualEur||{},
+        allDates:(c.allDates||[]).map(d=>d instanceof Date?d.toISOString():d),
+        artData:{}
+      };
+      Object.entries(c.artData||{}).forEach(([ak,art])=>{
+        payload.clients[k].artData[ak]={
+          monthlyEur:art.monthlyEur||{},
+          allDates:(art.allDates||[]).map(d=>d instanceof Date?d.toISOString():d),
+          totalQty:art.totalQty||0,
+          totalEur:art.totalEur||0
+        };
+      });
+    }catch(e){console.warn('Error serializing client',k,e);}
+  });
+
+  const str=JSON.stringify(payload);
+  const sizeKB=Math.round(str.length/1024);
+  console.log('Payload size:',sizeKB,'KB');
+  if(sizeKB>95000){throw new Error('Dati troppo grandi per GitHub ('+sizeKB+'KB > 95MB)');}
+
+  // Calcola SHA attuale
+  let sha=configSha['data/clienti.json']||null;
+  if(!sha){
+    try{
+      const ex=await ghFetch('data/clienti.json');
+      sha=ex.sha||null;
+      if(sha)configSha['data/clienti.json']=sha;
+    }catch(e){/* file non esiste ancora */}
+  }
+
+  // Codifica e salva
+  const b64=btoa(unescape(encodeURIComponent(str)));
+  const body={message:'Update clienti '+new Date().toLocaleDateString('it-IT'),content:b64};
+  if(sha)body.sha=sha;
+
+  const r=await fetch('https://api.github.com/repos/'+GH_REPO+'/contents/data/clienti.json',{
+    method:'PUT',
+    headers:{
+      'Authorization':'token '+token,
+      'Accept':'application/vnd.github.v3+json',
+      'Content-Type':'application/json',
+      'User-Agent':'materika-crm'
+    },
+    body:JSON.stringify(body)
+  });
+  const d=await r.json();
+  if(!r.ok)throw new Error('GitHub PUT: '+(d.message||r.status));
+  if(d.content?.sha)configSha['data/clienti.json']=d.content.sha;
+  console.log('✓ Saved to GitHub, new SHA:',d.content?.sha?.slice(0,8));
 }
 
 async function loadClientsFromGitHub(){
@@ -740,7 +785,7 @@ async function loadClientsFromGitHub(){
 
 
 /* ═══ PROCESS ═══ */
-function processData(){
+async function processData(){
   if(!allRows.length){dbg('✗ Nessuna riga','err');return;}
   dbg('\n→ Analisi su '+allRows.length+' righe...');
   clients={};
@@ -814,7 +859,13 @@ function processData(){
     setFilter('tutti');
     // Salva dati su GitHub
     dbg('→ Salvataggio dati su GitHub...');
-    saveClientsToGitHub().then(()=>dbg('✓ Dati salvati su GitHub','ok')).catch(e=>dbg('⚠ Salvataggio GitHub: '+e.message,'warn'));
+    try{
+      await saveClientsToGitHub();
+      dbg('✓ Dati salvati su GitHub','ok');
+    }catch(e){
+      dbg('⚠ Salvataggio GitHub: '+e.message,'warn');
+      console.error('saveClientsToGitHub error:',e);
+    }
   }catch(e){dbg('✗ Errore: '+e.message,'err');console.error(e);}
 }
 
