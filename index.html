@@ -1601,7 +1601,15 @@ async function ghFetch(path, method, body){
   const r=await fetch(GH_API+'/repos/'+GH_REPO+'/contents/'+path, opts);
   const d=await r.json();
   if(!r.ok) throw new Error('GitHub: '+(d.message||r.status));
-  // Decodifica contenuto base64 se presente
+  // File grandi (>1MB): GitHub non restituisce content, usa download_url
+  if(d.download_url && !d.content){
+    const r2=await fetch(d.download_url,{headers:{'Authorization':'token '+token}});
+    if(!r2.ok) throw new Error('Download GitHub: '+r2.status);
+    const raw=await r2.text();
+    const parsed=(()=>{try{return JSON.parse(raw);}catch(e){return null;}})();
+    return {parsed, sha:d.sha, raw};
+  }
+  // File normali: decodifica base64
   if(d.content){
     const raw=atob(d.content.replace(/\n/g,''));
     const parsed=(()=>{try{return JSON.parse(raw);}catch(e){return null;}})();
