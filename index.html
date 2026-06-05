@@ -416,6 +416,7 @@ body{background:var(--bg);color:var(--text);font-size:13px;height:100vh;overflow
           <div style="margin-top:14px;display:flex;gap:10px">
             <button class="btn btn-primary" id="btn-proc" onclick="processData()" disabled><i class="ti ti-cpu"></i>Analizza dati</button>
             <button class="btn" onclick="clearAll()"><i class="ti ti-trash"></i>Rimuovi tutto</button>
+            <button class="btn" onclick="reloadFromGitHub()" style="margin-left:auto"><i class="ti ti-cloud-download"></i>Ricarica da GitHub</button>
           </div>
         </div>
       </div>
@@ -644,6 +645,100 @@ function pct(a,b){return b?Math.round(a/b*100)+'%':'0%';}
 function esc(k){return(k||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 function mk(d){return d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`:null;}
 
+/* ═══════════════════════════════════════════
+   SALVATAGGIO / CARICAMENTO DATI CLIENTI
+═══════════════════════════════════════════ */
+
+async function saveClientsToGitHub(){
+  if(!Object.keys(clients).length) return;
+  const token=localStorage.getItem('gh_token')||ghToken;
+  if(!token) return;
+  // Serializza clients (struttura aggregata, non le righe raw)
+  const payload={
+    savedAt: new Date().toISOString(),
+    colMap,
+    clients: Object.fromEntries(Object.entries(clients).map(([k,c])=>([k,{
+      name:c.name, code:c.code, agente:c.agente,
+      monthlyEur:c.monthlyEur,
+      annualEur:c.annualEur,
+      allDates:c.allDates.map(d=>d.toISOString()),
+      artData:Object.fromEntries(Object.entries(c.artData).map(([ak,art])=>([ak,{
+        monthlyEur:art.monthlyEur,
+        allDates:art.allDates.map(d=>d.toISOString()),
+        totalQty:art.totalQty,
+        totalEur:art.totalEur
+      }])))
+    }])))
+  };
+  await ghSave('data/clienti.json', payload, 'Update dati clienti '+new Date().toLocaleDateString('it-IT'));
+}
+
+async function loadClientsFromGitHub(){
+  const token=localStorage.getItem('gh_token')||ghToken;
+  if(!token) return false;
+  try{
+    const d=await ghFetch('data/clienti.json');
+    if(!d.parsed?.clients) return false;
+    const saved=d.parsed;
+    dbg('→ Caricamento dati da GitHub ('+new Date(saved.savedAt).toLocaleDateString('it-IT')+')...');
+    // Ripristina colMap
+    if(saved.colMap) colMap=saved.colMap;
+    // Ripristina clients
+    clients={};
+    const today=new Date();
+    Object.entries(saved.clients).forEach(([key,c])=>{
+      // Riconverti le date ISO in oggetti Date
+      const allDates=c.allDates.map(s=>new Date(s)).filter(d=>!isNaN(d));
+      const artData={};
+      Object.entries(c.artData||{}).forEach(([ak,art])=>{
+        const artDates=art.allDates.map(s=>new Date(s)).filter(d=>!isNaN(d));
+        artDates.sort((a,b)=>a-b);
+        artData[ak]={
+          monthlyEur:art.monthlyEur||{},
+          allDates:artDates,
+          totalQty:art.totalQty||0,
+          totalEur:art.totalEur||0,
+          cycle:calcArtCycle(artDates,null)
+        };
+      });
+      allDates.sort((a,b)=>a-b);
+      const lastDate=allDates.length?allDates[allDates.length-1]:null;
+      const ddtCycle=calcDdtCycle(allDates);
+      clients[key]={
+        name:c.name, code:c.code, agente:c.agente,
+        monthlyEur:c.monthlyEur||{},
+        annualEur:c.annualEur||{},
+        allDates, artData,
+        lastDate,
+        firstDate:allDates.length?allDates[0]:null,
+        daysSince:lastDate?Math.floor((today-lastDate)/864e5):99999,
+        ddtCycle,
+        sogliaRipresa:ddtCycle?Math.max(Math.round(ddtCycle.avgDays),60):60,
+        maxSilenzioStorico:calcMaxSilenzio(allDates)
+      };
+      // Ricalcola ciclo articoli con ddtCycle
+      Object.entries(clients[key].artData).forEach(([ak,art])=>{
+        art.cycle=calcArtCycle(art.allDates,clients[key].ddtCycle);
+      });
+      if(!artFlags[key]) artFlags[key]={};
+    });
+    dbg('✓ Clienti caricati: '+Object.keys(clients).length,'ok');
+    buildView();activeFilter='tutti';refreshUI();
+    document.getElementById('tb-sub').textContent=Object.keys(clients).length+' clienti · dati da GitHub';
+    document.getElementById('dash-empty').style.display='none';
+    document.getElementById('dash-data').style.display='block';
+    showPage('dashboard',document.querySelector('.sb-item'));
+    document.querySelectorAll('.sb-item')[0].classList.add('active');
+    setFilter('tutti');
+    return true;
+  }catch(e){
+    if(e.message.includes('404')||e.message.includes('non trovato')) return false;
+    dbg('⚠ Caricamento dati: '+e.message,'warn');
+    return false;
+  }
+}
+
+
 /* ═══ PROCESS ═══ */
 function processData(){
   if(!allRows.length){dbg('✗ Nessuna riga','err');return;}
@@ -717,6 +812,9 @@ function processData(){
     showPage('dashboard',document.querySelector('.sb-item'));
     document.querySelectorAll('.sb-item')[0].classList.add('active');
     setFilter('tutti');
+    // Salva dati su GitHub
+    dbg('→ Salvataggio dati su GitHub...');
+    saveClientsToGitHub().then(()=>dbg('✓ Dati salvati su GitHub','ok')).catch(e=>dbg('⚠ Salvataggio GitHub: '+e.message,'warn'));
   }catch(e){dbg('✗ Errore: '+e.message,'err');console.error(e);}
 }
 
@@ -1400,6 +1498,10 @@ async function doLogin(){
     if(sbUtenti)sbUtenti.style.display=user.ruolo==='master'?'flex':'none';
     // Carica configurazione
     await loadConfigFromGitHub();
+    // Carica dati clienti
+    const hadData=await loadClientsFromGitHub();
+    if(hadData) dbg('✓ Dati clienti caricati da GitHub','ok');
+    else dbg('ℹ Nessun dato salvato — carica i file Excel','');
     // Carica preventivi
     await loadPreventiviFromGitHub();
     // Riapplica filtro agente se necessario
@@ -2107,6 +2209,19 @@ window.addEventListener('load',()=>{
     el?.focus();
   },100);
 });
+
+
+function reloadFromGitHub(){
+  dbgClear();
+  const panel=document.getElementById('debug-panel');
+  if(panel)panel.style.display='block';
+  showPage('caricamento',null);
+  dbg('→ Ricaricamento dati da GitHub...');
+  loadClientsFromGitHub().then(ok=>{
+    if(ok)dbg('✓ Dati ricaricati con successo','ok');
+    else dbg('✗ Nessun dato trovato su GitHub — carica i file Excel','warn');
+  });
+}
 
 
 function exportCSV(){
